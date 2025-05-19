@@ -1,11 +1,13 @@
 {
   "dependencies": {
+    "@types/nodemailer": "^6.4.17",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "nats": "^2.29.3",
+    "nodemailer": "^7.0.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
