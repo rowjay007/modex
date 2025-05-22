@@ -7,18 +7,18 @@ export interface User {
   id: number;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  isActive: boolean;
-  isEmailVerified: boolean;
+  firstName: string | null;
+  lastName: string | null;
+  role: string; // Using string to match the schema type
+  isActive: boolean | null;
+  isEmailVerified: boolean | null;
   emailVerificationToken: string | null;
   emailVerificationExpires: Date | null;
   passwordResetToken: string | null;
   passwordResetExpires: Date | null;
   lastLoginAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export const CreateUserDTO = z.object({

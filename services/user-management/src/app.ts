@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import userRoutes from "./routes/userRoutes";
 import { logger } from "./utils/logger";
 
 // Initialize express app
@@ -20,10 +21,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
+// Simple health check endpoint
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// API Routes
+app.use("/api/users", userRoutes);
 
 // Error handling middleware
 app.use(

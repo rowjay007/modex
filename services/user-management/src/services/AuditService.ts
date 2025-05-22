@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../config/database';
 import { pgTable, serial, timestamp, varchar, integer, jsonb } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 

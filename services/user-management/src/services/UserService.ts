@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { config } from '../config';
-import { db } from '../db';
-import { users } from '../db/schema';
+import { db } from '../config/database';
+import { users } from '../models/schema';
 import { AppError } from '../middleware/error';
 import { CreateUserDTO, UpdateUserDTO, User } from '../models/User';
 import { emailService } from './EmailService';
@@ -196,7 +196,8 @@ export class UserService {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return db.select().from(users);
+    const result = await db.select().from(users);
+    return result as unknown as User[];
   }
 }
 

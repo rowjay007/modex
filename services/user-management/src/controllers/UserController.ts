@@ -1,14 +1,13 @@
-import { Request, Response } from 'express';
-import { config } from '../config';
-import { AuthRequest } from '../middleware/auth';
-import { CreateUserDTO, UpdateUserDTO } from '../models/User';
-import { userService } from '../services/UserService';
-import { sessionService } from '../services/SessionService';
-import { signToken } from '../utils/jwt';
-import { z } from 'zod';
+import { Request, Response } from "express";
+import { z } from "zod";
+import { AuthRequest } from "../middleware/auth";
+import { CreateUserDTO, UpdateUserDTO } from "../models/User";
+import { sessionService } from "../services/SessionService";
+import { userService } from "../services/UserService";
+import { signToken } from "../utils/jwt";
 
 const PasswordResetDTO = z.object({
-  password: z.string().min(8)
+  password: z.string().min(8),
 });
 
 export class UserController {
@@ -19,11 +18,11 @@ export class UserController {
     const token = signToken({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     res.status(201).json({
-      status: 'success',
+      status: "success",
       data: {
         token,
         user: {
@@ -31,19 +30,19 @@ export class UserController {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role
-        }
-      }
+          role: user.role,
+        },
+      },
     });
   }
 
   async verifyEmail(req: Request, res: Response): Promise<void> {
     const { token } = req.query;
 
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== "string") {
       res.status(400).json({
-        status: 'error',
-        message: 'Verification token is required'
+        status: "error",
+        message: "Verification token is required",
       });
       return;
     }
@@ -51,19 +50,19 @@ export class UserController {
     try {
       await userService.verifyEmail(token);
       res.json({
-        status: 'success',
-        message: 'Email verified successfully'
+        status: "success",
+        message: "Email verified successfully",
       });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({
-          status: 'error',
-          message: error.message
+          status: "error",
+          message: error.message,
         });
       } else {
         res.status(500).json({
-          status: 'error',
-          message: 'An unexpected error occurred'
+          status: "error",
+          message: "An unexpected error occurred",
         });
       }
     }
@@ -74,8 +73,8 @@ export class UserController {
 
     if (!email) {
       res.status(400).json({
-        status: 'error',
-        message: 'Email is required'
+        status: "error",
+        message: "Email is required",
       });
       return;
     }
@@ -83,13 +82,14 @@ export class UserController {
     try {
       await userService.requestPasswordReset(email);
       res.json({
-        status: 'success',
-        message: 'If an account exists with this email, you will receive password reset instructions'
+        status: "success",
+        message:
+          "If an account exists with this email, you will receive password reset instructions",
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'An unexpected error occurred'
+        status: "error",
+        message: "An unexpected error occurred",
       });
     }
   }
@@ -98,19 +98,19 @@ export class UserController {
     const { token } = req.query;
     const result = PasswordResetDTO.safeParse(req.body);
 
-    if (!token || typeof token !== 'string') {
+    if (!token || typeof token !== "string") {
       res.status(400).json({
-        status: 'error',
-        message: 'Reset token is required'
+        status: "error",
+        message: "Reset token is required",
       });
       return;
     }
 
     if (!result.success) {
       res.status(400).json({
-        status: 'error',
-        message: 'Invalid password format',
-        errors: result.error.errors
+        status: "error",
+        message: "Invalid password format",
+        errors: result.error.errors,
       });
       return;
     }
@@ -118,19 +118,19 @@ export class UserController {
     try {
       await userService.resetPassword(token, result.data.password);
       res.json({
-        status: 'success',
-        message: 'Password reset successfully'
+        status: "success",
+        message: "Password reset successfully",
       });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({
-          status: 'error',
-          message: error.message
+          status: "error",
+          message: error.message,
         });
       } else {
         res.status(500).json({
-          status: 'error',
-          message: 'An unexpected error occurred'
+          status: "error",
+          message: "An unexpected error occurred",
         });
       }
     }
@@ -143,14 +143,14 @@ export class UserController {
     const token = signToken({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     // Create a session
     await sessionService.createSession(user.id, token);
 
     res.json({
-      status: 'success',
+      status: "success",
       data: {
         token,
         user: {
@@ -158,9 +158,9 @@ export class UserController {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role
-        }
-      }
+          role: user.role,
+        },
+      },
     });
   }
 
@@ -168,14 +168,14 @@ export class UserController {
     const user = await userService.getUserById(req.user!.id);
 
     res.json({
-      status: 'success',
+      status: "success",
       data: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   }
 
@@ -184,17 +184,17 @@ export class UserController {
     const user = await userService.updateUser(req.user!.id, updateData);
 
     res.json({
-      status: 'success',
-      data: user
+      status: "success",
+      data: user,
     });
   }
 
   async getAllUsers(_req: Request, res: Response) {
     const users = await userService.getAllUsers();
-    
+
     res.json({
-      status: 'success',
-      data: users
+      status: "success",
+      data: users,
     });
   }
 
@@ -202,8 +202,8 @@ export class UserController {
     const user = await userService.getUserById(parseInt(req.params.id));
 
     res.json({
-      status: 'success',
-      data: user
+      status: "success",
+      data: user,
     });
   }
 }

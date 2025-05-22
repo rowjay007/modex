@@ -1,5 +1,5 @@
 import { redis, cacheGet, cacheSet, cacheDelete } from '../lib/redis';
-import { User } from '../db/schema';
+import { User } from '../models/User';
 
 export class SessionService {
   private readonly SESSION_PREFIX = 'session:';
