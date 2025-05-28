@@ -17,6 +17,16 @@ export interface User {
   passwordResetToken: string | null;
   passwordResetExpires: Date | null;
   lastLoginAt: Date | null;
+  
+  cookieConsent: boolean | null;
+  marketingConsent: boolean | null;
+  privacyPolicyAccepted: boolean | null;
+  termsAccepted: boolean | null;
+  consentUpdatedAt: Date | null;
+  
+  twoFactorSecret: string | null;
+  twoFactorEnabled: boolean | null;
+  
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -36,5 +46,14 @@ export const UpdateUserDTO = z.object({
   lastName: z.string().min(2).optional(),
   email: z.string().email().optional(),
 });
+
+export const ConsentUpdateDTO = z.object({
+  cookieConsent: z.boolean().optional(),
+  marketingConsent: z.boolean().optional(),
+  privacyPolicyAccepted: z.boolean().optional(),
+  termsAccepted: z.boolean().optional(),
+});
+
+export type ConsentUpdateDTO = z.infer<typeof ConsentUpdateDTO>;
 
 export type UpdateUserDTO = z.infer<typeof UpdateUserDTO>;

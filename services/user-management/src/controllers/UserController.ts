@@ -4,6 +4,7 @@ import { AuthRequest } from "../middleware/auth";
 import { CreateUserDTO, UpdateUserDTO } from "../models/User";
 import { sessionService } from "../services/SessionService";
 import { userService } from "../services/UserService";
+import { auditService } from "../services/AuditService";
 import { catchAsync } from "../utils/catchAsync";
 import { signToken } from "../utils/jwt";
 
@@ -184,6 +185,77 @@ export const deleteAccount = catchAsync(async (req: AuthRequest, res: Response) 
   });
 });
 
+export const exportUserData = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userData = await userService.exportUserData(req.user!.id);
+  
+  // Log data export for compliance
+  await auditService.log({
+    userId: req.user!.id,
+    action: 'DATA_EXPORT',
+    details: { timestamp: new Date().toISOString() }
+  });
+  
+  res.json({
+    status: "success",
+    data: userData
+  });
+});
+
+export const updateConsent = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { cookieConsent, marketingConsent, privacyPolicyAccepted, termsAccepted } = req.body;
+  
+  await userService.updateUserConsent(req.user!.id, {
+    cookieConsent,
+    marketingConsent,
+    privacyPolicyAccepted,
+    termsAccepted
+  });
+  
+  res.json({
+    status: "success",
+    message: "Consent preferences updated"
+  });
+});
+
+export const setup2FA = catchAsync(async (req: AuthRequest, res: Response) => {
+  const secretData = await userService.generate2FASecret(req.user!.id);
+  
+  res.json({
+    status: "success",
+    data: secretData
+  });
+});
+
+export const verify2FA = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    res.status(400).json({
+      status: "error",
+      message: "2FA token is required"
+    });
+    return;
+  }
+  
+  const isValid = await userService.verify2FAToken(req.user!.id, token);
+  
+  if (!isValid) {
+    res.status(401).json({
+      status: "error",
+      message: "Invalid 2FA token"
+    });
+    return;
+  }
+  
+  // Enable 2FA for the user
+  await userService.enable2FA(req.user!.id);
+  
+  res.json({
+    status: "success",
+    message: "Two-factor authentication enabled"
+  });
+});
+
 export const userController = {
   register,
   login,
@@ -194,5 +266,9 @@ export const userController = {
   resetPassword,
   getAllUsers,
   getUserById,
-  deleteAccount
+  deleteAccount,
+  exportUserData,
+  updateConsent,
+  setup2FA,
+  verify2FA
 };

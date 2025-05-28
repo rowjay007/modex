@@ -1,9 +1,11 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
 import apiRouter from "./routes";
 import { errorHandler } from "./middleware/error";
 import { logger } from "./utils/logger";
+import swaggerSpec from "./config/swagger";
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use((req, res, next) => {
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api", apiRouter);
 

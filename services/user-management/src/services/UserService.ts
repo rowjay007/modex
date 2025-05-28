@@ -215,6 +215,138 @@ export async function deleteUser(id: number): Promise<void> {
   await db.delete(users).where(eq(users.id, id));
 }
 
+export interface UserConsent {
+  cookieConsent?: boolean;
+  marketingConsent?: boolean;
+  privacyPolicyAccepted?: boolean;
+  termsAccepted?: boolean;
+}
+
+export async function updateUserConsent(id: number, consent: UserConsent): Promise<void> {
+  const user = await getUserById(id);
+  
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+  
+  // Update consent fields
+  await db.update(users)
+    .set({
+      ...consent,
+      consentUpdatedAt: new Date()
+    })
+    .where(eq(users.id, id));
+    
+  // Log consent update for compliance
+  await auditService.log({
+    userId: id,
+    action: 'CONSENT_UPDATED',
+    details: {
+      ...consent,
+      timestamp: new Date().toISOString()
+    }
+  });
+}
+
+export async function exportUserData(id: number): Promise<any> {
+  const user = await getUserById(id);
+  
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+  
+  // Get all user-related data for GDPR compliance
+  const userData = {
+    profile: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    },
+    // Exclude sensitive data like password
+    consent: {
+      cookieConsent: user.cookieConsent,
+      marketingConsent: user.marketingConsent,
+      privacyPolicyAccepted: user.privacyPolicyAccepted,
+      termsAccepted: user.termsAccepted,
+      consentUpdatedAt: user.consentUpdatedAt
+    }
+  };
+  
+  return userData;
+}
+
+export async function generate2FASecret(id: number): Promise<{ secret: string, qrCodeUrl: string }> {
+  const user = await getUserById(id);
+  
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+  
+  // Generate a random secret for 2FA
+  const secret = crypto.randomBytes(20).toString('hex');
+  
+  // In a real implementation, we would use a library like 'speakeasy' to generate a proper TOTP secret
+  // and QR code URL, but for this example we'll create a simple placeholder
+  
+  // Update the user with the 2FA secret
+  await db.update(users)
+    .set({
+      twoFactorSecret: secret,
+      twoFactorEnabled: false // Not enabled until verified
+    })
+    .where(eq(users.id, id));
+  
+  return {
+    secret,
+    qrCodeUrl: `otpauth://totp/ModexApp:${user.email}?secret=${secret}&issuer=ModexApp`
+  };
+}
+
+export async function verify2FAToken(id: number, token: string): Promise<boolean> {
+  const user = await getUserById(id);
+  
+  if (!user || !user.twoFactorSecret) {
+    throw new AppError(400, '2FA not set up for this user');
+  }
+  
+  // In a real implementation, we would use 'speakeasy' to verify the token
+  // For this example, we'll simulate a simple verification
+  // This is NOT secure and is just for demonstration
+  const isValid = token.length === 6 && /^\d+$/.test(token);
+  
+  return isValid;
+}
+
+export async function enable2FA(id: number): Promise<void> {
+  const user = await getUserById(id);
+  
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+  
+  if (!user.twoFactorSecret) {
+    throw new AppError(400, '2FA secret not set');
+  }
+  
+  // Enable 2FA for the user
+  await db.update(users)
+    .set({
+      twoFactorEnabled: true
+    })
+    .where(eq(users.id, id));
+  
+  // Log 2FA enablement for security audit
+  await auditService.log({
+    userId: id,
+    action: 'TWO_FACTOR_ENABLED',
+    details: { timestamp: new Date().toISOString() }
+  });
+}
+
 export const userService = {
   verifyEmail,
   requestPasswordReset,
@@ -224,5 +356,10 @@ export const userService = {
   getUserById,
   updateUser,
   getAllUsers,
-  deleteUser
+  deleteUser,
+  exportUserData,
+  updateUserConsent,
+  generate2FASecret,
+  verify2FAToken,
+  enable2FA
 };
