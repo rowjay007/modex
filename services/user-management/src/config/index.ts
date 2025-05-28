@@ -26,7 +26,7 @@ type Config = z.infer<typeof configSchema>;
 export const config: Config = {
   port: process.env.PORT || "3000",
   nodeEnv: (process.env.NODE_ENV as Config["nodeEnv"]) || "development",
-  dbUrl: process.env.DATABASE_URL || process.env.DIRECT_URL || "",
+  dbUrl: process.env.DATABASE_URL || process.env.DATABASE_URL || "",
   jwtSecret: process.env.JWT_SECRET || "your-secret-key",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
   bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS) || 10,

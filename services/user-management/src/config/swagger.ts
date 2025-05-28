@@ -15,8 +15,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: '/api/v1',
-        description: 'API v1',
+        url: '/api/v1/users',
+        description: 'User Management API v1',
       },
     ],
     components: {
