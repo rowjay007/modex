@@ -9,7 +9,7 @@ export interface User {
   password: string;
   firstName: string | null;
   lastName: string | null;
-  role: string; // Using string to match the schema type
+  role: string; 
   isActive: boolean | null;
   isEmailVerified: boolean | null;
   emailVerificationToken: string | null;

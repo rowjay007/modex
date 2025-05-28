@@ -11,14 +11,12 @@ const configSchema = z.object({
   jwtSecret: z.string().transform((val): Secret => val),
   jwtExpiresIn: z.string().default("1d"),
   bcryptSaltRounds: z.number().default(10),
-  // Email configuration
   smtpHost: z.string().default("smtp.gmail.com"),
   smtpPort: z.number().default(465),
   smtpUser: z.string(),
   smtpPassword: z.string(),
   emailFrom: z.string(),
   appUrl: z.string().default("http://localhost:3000"),
-  // Redis configuration
   redisUrl: z.string(),
   redisToken: z.string(),
 });

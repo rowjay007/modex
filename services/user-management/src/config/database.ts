@@ -23,7 +23,6 @@ process.on("unhandledRejection", (err) => {
     if (err.message.includes("database")) {
       logger.error("❌ Database connection failed:", err);
     }
-    // Prevent the process from crashing
     logger.error("Unhandled rejection:", err);
   }
 });

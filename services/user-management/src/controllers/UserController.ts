@@ -4,14 +4,14 @@ import { AuthRequest } from "../middleware/auth";
 import { CreateUserDTO, UpdateUserDTO } from "../models/User";
 import { sessionService } from "../services/SessionService";
 import { userService } from "../services/UserService";
+import { catchAsync } from "../utils/catchAsync";
 import { signToken } from "../utils/jwt";
 
 const PasswordResetDTO = z.object({
   password: z.string().min(8),
 });
 
-// Register new user
-export const register = async (req: Request, res: Response) => {
+export const register = catchAsync(async (req: Request, res: Response) => {
   const userData = CreateUserDTO.parse(req.body);
   const user = await userService.createUser(userData);
 
@@ -34,10 +34,9 @@ export const register = async (req: Request, res: Response) => {
       },
     },
   });
-};
+});
 
-// Verify email
-export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.query;
 
   if (!token || typeof token !== "string") {
@@ -48,29 +47,14 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     return;
   }
 
-  try {
-    await userService.verifyEmail(token);
-    res.json({
-      status: "success",
-      message: "Email verified successfully",
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    } else {
-      res.status(500).json({
-        status: "error",
-        message: "An unexpected error occurred",
-      });
-    }
-  }
-};
+  await userService.verifyEmail(token);
+  res.json({
+    status: "success",
+    message: "Email verified successfully",
+  });
+});
 
-// Request password reset
-export const requestPasswordReset = async (req: Request, res: Response): Promise<void> => {
+export const requestPasswordReset = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
 
   if (!email) {
@@ -81,23 +65,15 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
     return;
   }
 
-  try {
-    await userService.requestPasswordReset(email);
-    res.json({
-      status: "success",
-      message:
-        "If an account exists with this email, you will receive password reset instructions",
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "An unexpected error occurred",
-    });
-  }
-};
+  await userService.requestPasswordReset(email);
+  res.json({
+    status: "success",
+    message:
+      "If an account exists with this email, you will receive password reset instructions",
+  });
+});
 
-// Reset password
-export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+export const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.query;
   const result = PasswordResetDTO.safeParse(req.body);
 
@@ -118,29 +94,14 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  try {
-    await userService.resetPassword(token, result.data.password);
-    res.json({
-      status: "success",
-      message: "Password reset successfully",
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    } else {
-      res.status(500).json({
-        status: "error",
-        message: "An unexpected error occurred",
-      });
-    }
-  }
-};
+  await userService.resetPassword(token, result.data.password);
+  res.json({
+    status: "success",
+    message: "Password reset successfully",
+  });
+});
 
-// Login user
-export const login = async (req: Request, res: Response) => {
+export const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const user = await userService.validateUser(email, password);
 
@@ -150,7 +111,6 @@ export const login = async (req: Request, res: Response) => {
     role: user.role,
   });
 
-  // Create a session
   await sessionService.createSession(user.id, token);
 
   res.json({
@@ -166,10 +126,10 @@ export const login = async (req: Request, res: Response) => {
       },
     },
   });
-};
+});
 
 // Get user profile
-export const getProfile = async (req: AuthRequest, res: Response) => {
+export const getProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   const user = await userService.getUserById(req.user!.id);
 
   res.json({
@@ -182,10 +142,9 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       role: user.role,
     },
   });
-};
+});
 
-// Update user profile
-export const updateProfile = async (req: AuthRequest, res: Response) => {
+export const updateProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   const updateData = UpdateUserDTO.parse(req.body);
   const user = await userService.updateUser(req.user!.id, updateData);
 
@@ -193,20 +152,18 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     status: "success",
     data: user,
   });
-};
+});
 
-// Get all users (admin)
-export const getAllUsers = async (_req: Request, res: Response) => {
+export const getAllUsers = catchAsync(async (_req: Request, res: Response) => {
   const users = await userService.getAllUsers();
 
   res.json({
     status: "success",
     data: users,
   });
-};
+});
 
-// Get user by ID (admin)
-export const getUserById = async (req: Request, res: Response) => {
+export const getUserById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const user = await userService.getUserById(Number(id));
 
@@ -214,17 +171,28 @@ export const getUserById = async (req: Request, res: Response) => {
     status: "success",
     data: user,
   });
-};
+});
 
-// Export all controller functions as an object for backward compatibility
+export const deleteAccount = catchAsync(async (req: AuthRequest, res: Response) => {
+  await userService.deleteUser(req.user!.id);
+  
+  await sessionService.invalidateAllUserSessions(req.user!.id);
+  
+  res.status(204).json({
+    status: "success",
+    data: null
+  });
+});
+
 export const userController = {
   register,
-  verifyEmail,
-  requestPasswordReset,
-  resetPassword,
   login,
+  verifyEmail,
   getProfile,
   updateProfile,
+  requestPasswordReset,
+  resetPassword,
   getAllUsers,
-  getUserById
+  getUserById,
+  deleteAccount
 };

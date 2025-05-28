@@ -31,13 +31,11 @@ export const createRateLimiter = (
       next();
     } catch (error) {
       console.error('Rate limiter error:', error);
-      // If Redis fails, allow the request to proceed
       next();
     }
   };
 };
 
-// Rate limiters for different endpoints
 export const authRateLimiter = createRateLimiter('auth', 5, 15 * 60 * 1000); // 5 requests per 15 minutes
 export const emailVerificationLimiter = createRateLimiter('email-verify', 3, 60 * 60 * 1000); // 3 requests per hour
 export const passwordResetLimiter = createRateLimiter('password-reset', 3, 60 * 60 * 1000); // 3 requests per hour

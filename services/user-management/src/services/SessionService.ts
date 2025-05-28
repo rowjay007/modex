@@ -1,40 +1,52 @@
-import { redis, cacheGet, cacheSet, cacheDelete } from '../lib/redis';
-import { User } from '../models/User';
+import { cacheDelete, cacheGet, cacheSet, redis } from "../lib/redis";
 
-export class SessionService {
-  private readonly SESSION_PREFIX = 'session:';
-  private readonly SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
+const SESSION_PREFIX = "session:";
+const SESSION_DURATION = 24 * 60 * 60;
 
-  async createSession(userId: number, token: string): Promise<void> {
-    const sessionKey = this.getSessionKey(userId);
-    await cacheSet(sessionKey, {
+function getSessionKey(userId: number): string {
+  return `${SESSION_PREFIX}${userId}`;
+}
+
+export async function createSession(
+  userId: number,
+  token: string
+): Promise<void> {
+  const sessionKey = getSessionKey(userId);
+  await cacheSet(
+    sessionKey,
+    {
       userId,
       token,
-      createdAt: new Date().toISOString()
-    }, this.SESSION_DURATION);
-  }
+      createdAt: new Date().toISOString(),
+    },
+    SESSION_DURATION
+  );
+}
 
-  async getSession(userId: number): Promise<{ userId: number; token: string; createdAt: string } | null> {
-    const sessionKey = this.getSessionKey(userId);
-    return await cacheGet(sessionKey);
-  }
+export async function getSession(
+  userId: number
+): Promise<{ userId: number; token: string; createdAt: string } | null> {
+  const sessionKey = getSessionKey(userId);
+  return await cacheGet(sessionKey);
+}
 
-  async invalidateSession(userId: number): Promise<void> {
-    const sessionKey = this.getSessionKey(userId);
-    await cacheDelete(sessionKey);
-  }
+export async function invalidateSession(userId: number): Promise<void> {
+  const sessionKey = getSessionKey(userId);
+  await cacheDelete(sessionKey);
+}
 
-  async invalidateAllUserSessions(userId: number): Promise<void> {
-    const pattern = `${this.SESSION_PREFIX}${userId}:*`;
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
-    }
-  }
 
-  private getSessionKey(userId: number): string {
-    return `${this.SESSION_PREFIX}${userId}`;
+export async function invalidateAllUserSessions(userId: number): Promise<void> {
+  const pattern = `${SESSION_PREFIX}${userId}:*`;
+  const keys = await redis.keys(pattern);
+  if (keys.length > 0) {
+    await redis.del(...keys);
   }
 }
 
-export const sessionService = new SessionService();
+export const sessionService = {
+  createSession,
+  getSession,
+  invalidateSession,
+  invalidateAllUserSessions,
+};
