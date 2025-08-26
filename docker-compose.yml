@@ -1,0 +1,216 @@
+version: '3.8'
+
+services:
+  # Database Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: modex-postgres
+    environment:
+      POSTGRES_DB: modex
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/configs/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - modex-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: modex-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - modex-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: modex-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      CORS_ORIGIN: "*"
+      # Service URLs
+      COURSE_SERVICE_URL: http://course-management:3002
+      ENROLLMENT_SERVICE_URL: http://enrollment:3003
+      ASSESSMENT_SERVICE_URL: http://assessment:3004
+      PAYMENT_SERVICE_URL: http://payment:3005
+      ANALYTICS_SERVICE_URL: http://analytics:3006
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Course Management Service
+  course-management:
+    build:
+      context: ./services/course-management
+      dockerfile: Dockerfile
+    container_name: modex-course-management
+    ports:
+      - "3002:3002"
+    environment:
+      GIN_MODE: release
+      PORT: 3002
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Enrollment Service
+  enrollment:
+    build:
+      context: ./services/enrollment
+      dockerfile: Dockerfile
+    container_name: modex-enrollment
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      COURSE_SERVICE_URL: http://course-management:3002
+      ANALYTICS_SERVICE_URL: http://analytics:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Assessment Service
+  assessment:
+    build:
+      context: ./services/assessment
+      dockerfile: Dockerfile
+    container_name: modex-assessment
+    ports:
+      - "3004:3004"
+    environment:
+      GIN_MODE: release
+      PORT: 3004
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      COURSE_SERVICE_URL: http://course-management:3002
+      ANALYTICS_SERVICE_URL: http://analytics:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+    container_name: modex-payment
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      ANALYTICS_SERVICE_URL: http://analytics:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics:
+    build:
+      context: ./services/analytics
+      dockerfile: Dockerfile
+    container_name: modex-analytics
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      BATCH_SIZE: 100
+      FLUSH_INTERVAL: 5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Load Balancer (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: modex-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./infrastructure/configs/nginx/sites-enabled:/etc/nginx/sites-enabled
+    depends_on:
+      - api-gateway
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+networks:
+  modex-network:
+    driver: bridge
+    name: modex-network
+
+volumes:
+  postgres_data:
+    name: modex-postgres-data
+  redis_data:
+    name: modex-redis-data

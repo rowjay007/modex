@@ -6,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const compression_1 = __importDefault(require("compression"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const config_1 = require("./config/config");
 const analyticsRoutes_1 = __importDefault(require("./routes/analyticsRoutes"));
 const app = (0, express_1.default)();
@@ -29,20 +27,6 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-// Compression middleware
-app.use((0, compression_1.default)());
-// Rate limiting
-const limiter = (0, express_rate_limit_1.default)({
-    windowMs: config_1.config.RATE_LIMIT_WINDOW_MS,
-    max: config_1.config.RATE_LIMIT_MAX_REQUESTS,
-    message: {
-        error: 'Too many requests from this IP',
-        retryAfter: Math.ceil(config_1.config.RATE_LIMIT_WINDOW_MS / 1000),
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-app.use(limiter);
 // Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
