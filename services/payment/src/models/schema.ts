@@ -23,22 +23,18 @@ export const paymentMethodEnum = pgEnum('payment_method', [
 export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
-  courseId: uuid('course_id').notNull(),
+  courseId: uuid('course_id'),
+  subscriptionPlanId: uuid('subscription_plan_id'),
   stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 255 }),
   
   // Payment details
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  currency: varchar('currency', { length: 3 }).notNull().default('USD'),
-  paymentMethod: paymentMethodEnum('payment_method').notNull(),
-  status: paymentStatusEnum('status').notNull().default('pending'),
+  currency: varchar('currency', { length: 3 }).notNull().default('usd'),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
   
   // Metadata
   description: text('description'),
   metadata: text('metadata'), // JSON string for additional data
-  
-  // Stripe-specific fields
-  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
-  stripeChargeId: varchar('stripe_charge_id', { length: 255 }),
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),

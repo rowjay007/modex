@@ -10,7 +10,7 @@ class StripeService {
     }
     
     this.stripe = new Stripe(config.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-04-10',
+      apiVersion: '2023-10-16',
     });
   }
 

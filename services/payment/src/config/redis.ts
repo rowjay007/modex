@@ -10,7 +10,6 @@ class RedisClient {
       url: config.REDIS_URL,
       socket: {
         connectTimeout: 60000,
-        lazyConnect: true,
       },
     });
 

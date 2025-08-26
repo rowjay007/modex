@@ -13,17 +13,19 @@ interface AuthenticatedRequest extends Request {
 
 export class PaymentController {
   
-  async createPayment(req: AuthenticatedRequest, res: Response) {
+  async createPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { courseId, subscriptionPlanId, amount, currency, description, metadata } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       if (!amount || amount <= 0) {
-        return res.status(400).json({ error: 'Valid amount is required' });
+        res.status(400).json({ error: 'Valid amount is required' });
+        return;
       }
 
       const paymentData: CreatePaymentData = {
@@ -56,17 +58,19 @@ export class PaymentController {
     }
   }
 
-  async createSubscription(req: AuthenticatedRequest, res: Response) {
+  async createSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { planId, priceId, trialPeriodDays, metadata } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       if (!planId || !priceId) {
-        return res.status(400).json({ error: 'Plan ID and Price ID are required' });
+        res.status(400).json({ error: 'Plan ID and Price ID are required' });
+        return;
       }
 
       const subscriptionData: CreateSubscriptionData = {
@@ -98,24 +102,27 @@ export class PaymentController {
     }
   }
 
-  async getPayment(req: AuthenticatedRequest, res: Response) {
+  async getPayment(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { paymentId } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       const payment = await paymentService.getPaymentById(paymentId);
 
       if (!payment) {
-        return res.status(404).json({ error: 'Payment not found' });
+        res.status(404).json({ error: 'Payment not found' });
+        return;
       }
 
       // Check if user owns this payment
-      if (payment.userId !== userId) {
-        return res.status(403).json({ error: 'Access denied' });
+      if (!payment || payment.userId !== userId) {
+        res.status(404).json({ error: 'Payment not found' });
+        return;
       }
 
       res.json({
@@ -131,14 +138,15 @@ export class PaymentController {
     }
   }
 
-  async getUserPayments(req: AuthenticatedRequest, res: Response) {
+  async getUserPayments(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       const payments = await paymentService.getUserPayments(userId, limit, offset);
@@ -161,20 +169,26 @@ export class PaymentController {
     }
   }
 
-  async createRefund(req: AuthenticatedRequest, res: Response) {
+  async createRefund(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { paymentId } = req.params;
       const { amount, reason } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       // Verify payment ownership
       const payment = await paymentService.getPaymentById(paymentId);
+      if (!payment) {
+        res.status(404).json({ error: 'Payment not found' });
+        return;
+      }
       if (!payment || payment.userId !== userId) {
-        return res.status(404).json({ error: 'Payment not found or access denied' });
+        res.status(404).json({ error: 'Payment not found' });
+        return;
       }
 
       const refund = await paymentService.createRefund(paymentId, amount, reason);
@@ -192,12 +206,13 @@ export class PaymentController {
     }
   }
 
-  async getUserSubscriptions(req: AuthenticatedRequest, res: Response) {
+  async getUserSubscriptions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       const subscriptions = await paymentService.getUserSubscriptions(userId);
@@ -215,13 +230,14 @@ export class PaymentController {
     }
   }
 
-  async cancelSubscription(req: AuthenticatedRequest, res: Response) {
+  async cancelSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { subscriptionId } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       const canceledSubscription = await paymentService.cancelSubscription(subscriptionId);
@@ -239,12 +255,13 @@ export class PaymentController {
     }
   }
 
-  async handleWebhook(req: Request, res: Response) {
+  async handleWebhook(req: Request, res: Response): Promise<void> {
     try {
       const signature = req.headers['stripe-signature'] as string;
       
       if (!signature) {
-        return res.status(400).json({ error: 'Missing Stripe signature' });
+        res.status(400).json({ error: 'Missing Stripe signature' });
+        return;
       }
 
       const event = await stripeService.constructWebhookEvent(req.body, signature);
@@ -261,12 +278,13 @@ export class PaymentController {
     }
   }
 
-  async getPaymentMethods(req: AuthenticatedRequest, res: Response) {
+  async getPaymentMethods(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
       // This would require getting the Stripe customer ID first

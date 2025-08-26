@@ -46,24 +46,22 @@ class PaymentService {
 
       // Create payment record in database
       const [payment] = await db.insert(payments).values({
-        id: crypto.randomUUID(),
         userId: paymentData.userId,
-        courseId: paymentData.courseId,
-        subscriptionPlanId: paymentData.subscriptionPlanId,
+        courseId: paymentData.courseId || null,
+        subscriptionPlanId: paymentData.subscriptionPlanId || null,
         stripePaymentIntentId: paymentIntent.id,
-        amount: paymentData.amount,
+        amount: paymentData.amount.toString(),
         currency: paymentData.currency || config.CURRENCY,
         status: 'pending',
-        description: paymentData.description,
-        metadata: paymentData.metadata,
+        description: paymentData.description || null,
+        metadata: paymentData.metadata ? JSON.stringify(paymentData.metadata) : null,
       }).returning();
 
       // Create payment attempt record
       await db.insert(paymentAttempts).values({
-        id: crypto.randomUUID(),
         paymentId: payment.id,
-        status: 'pending',
-        stripePaymentIntentId: paymentIntent.id,
+        attemptNumber: 1,
+        errorCode: null,
         errorMessage: null,
       });
 
@@ -99,15 +97,14 @@ class PaymentService {
 
       // Create subscription record in database
       const [subscription] = await db.insert(subscriptions).values({
-        id: crypto.randomUUID(),
         userId: subscriptionData.userId,
         planId: subscriptionData.planId,
         stripeSubscriptionId: stripeSubscription.id,
-        stripeCustomerId: stripeCustomerId,
         status: 'active',
         currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
         currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        metadata: subscriptionData.metadata,
+        amount: '0.00', // Will be updated from webhook
+        currency: config.CURRENCY,
       }).returning();
 
       return {
@@ -164,7 +161,7 @@ class PaymentService {
         .update(payments)
         .set({
           status,
-          metadata,
+          metadata: metadata ? JSON.stringify(metadata) : null,
           updatedAt: new Date(),
         })
         .where(eq(payments.id, paymentId))
@@ -199,13 +196,11 @@ class PaymentService {
 
       // Create refund record
       const [refund] = await db.insert(refunds).values({
-        id: crypto.randomUUID(),
-        paymentId,
+        amount: (stripeRefund.amount / 100).toString(), // Convert from cents and stringify
+        paymentId: paymentId,
+        reason: stripeRefund.reason || undefined,
+        status: stripeRefund.status || 'pending',
         stripeRefundId: stripeRefund.id,
-        amount: stripeRefund.amount / 100, // Convert from cents
-        currency: stripeRefund.currency,
-        status: stripeRefund.status,
-        reason: stripeRefund.reason,
       }).returning();
 
       // Update payment status
@@ -230,6 +225,10 @@ class PaymentService {
       }
 
       // Cancel Stripe subscription
+      if (!subscription.stripeSubscriptionId) {
+        throw new Error('Stripe subscription ID not found');
+      }
+
       const canceledSubscription = await stripeService.cancelSubscription(
         subscription.stripeSubscriptionId
       );
@@ -366,11 +365,10 @@ class PaymentService {
 
         // Record failed attempt
         await db.insert(paymentAttempts).values({
-          id: crypto.randomUUID(),
           paymentId: payment.id,
-          status: 'failed',
-          stripePaymentIntentId: paymentIntent.id,
-          errorMessage: paymentIntent.last_payment_error?.message,
+          attemptNumber: 1,
+          errorCode: paymentIntent.last_payment_error?.code || null,
+          errorMessage: paymentIntent.last_payment_error?.message || null,
         });
       }
     } catch (error) {
