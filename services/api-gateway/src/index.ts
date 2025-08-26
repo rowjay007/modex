@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import { config } from './config/config';
-import { logger } from './utils/logger';
+import logger from './utils/logger';
 import { setupRoutes } from './routes';
 import { setupMiddleware } from './middleware';
 import { createPrometheusMetrics } from './middleware/metrics';
@@ -20,7 +20,7 @@ app.use(cors({
 app.use(compression());
 
 // Logging
-app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
+app.use(morgan('combined', { stream: { write: (message: string) => logger.info(message.trim()) } }));
 
 // Metrics
 app.use(createPrometheusMetrics());
