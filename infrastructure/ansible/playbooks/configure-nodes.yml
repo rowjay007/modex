@@ -1,0 +1,177 @@
+---
+- name: Configure Azure AKS and Services
+  hosts: azure_aks
+  gather_facts: true
+  become: false
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    
+  tasks:
+    - name: Install required Python packages
+      pip:
+        name:
+          - kubernetes
+          - azure-cli
+          - azure-identity
+          - azure-mgmt-containerservice
+        state: present
+
+    - name: Ensure kubectl is installed
+      shell: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+      args:
+        creates: /usr/local/bin/kubectl
+
+    - name: Install Helm
+      shell: |
+        curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+        sudo apt-get install apt-transport-https --yes
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+        sudo apt-get update
+        sudo apt-get install helm
+      args:
+        creates: /usr/bin/helm
+
+    - name: Get AKS credentials
+      shell: |
+        az aks get-credentials --resource-group {{ resource_group }} --name {{ aks_cluster_name }} --overwrite-existing
+      environment:
+        KUBECONFIG: ~/.kube/config
+
+    - name: Create namespace for Modex services
+      kubernetes.core.k8s:
+        name: modex-platform
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Create namespace for monitoring
+      kubernetes.core.k8s:
+        name: monitoring
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install NGINX Ingress Controller
+      kubernetes.core.helm:
+        name: nginx-ingress
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: ingress-nginx
+        create_namespace: true
+        values:
+          controller:
+            service:
+              type: LoadBalancer
+            config:
+              use-proxy-protocol: "true"
+            metrics:
+              enabled: true
+            replicaCount: 3
+
+    - name: Install cert-manager for SSL certificates
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: jetstack/cert-manager
+        release_namespace: cert-manager
+        create_namespace: true
+        values:
+          installCRDs: true
+          prometheus:
+            enabled: true
+
+    - name: Create ClusterIssuer for Let's Encrypt
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: letsencrypt-prod
+          spec:
+            acme:
+              server: https://acme-v02.api.letsencrypt.org/directory
+              email: admin@modex.platform
+              privateKeySecretRef:
+                name: letsencrypt-prod
+              solvers:
+              - http01:
+                  ingress:
+                    class: nginx
+
+    - name: Install Prometheus monitoring stack
+      kubernetes.core.helm:
+        name: prometheus
+        chart_ref: prometheus-community/kube-prometheus-stack
+        release_namespace: monitoring
+        values:
+          grafana:
+            enabled: true
+            adminPassword: "{{ grafana_admin_password | default('admin123') }}"
+            service:
+              type: LoadBalancer
+          prometheus:
+            prometheusSpec:
+              retention: 30d
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    storageClassName: managed-premium
+                    resources:
+                      requests:
+                        storage: 50Gi
+
+- name: Configure PostgreSQL Security
+  hosts: postgres
+  gather_facts: false
+  vars:
+    postgresql_version: "{{ postgres_version }}"
+    databases:
+      - "api_gateway"
+      - "course_management"
+      - "enrollment"
+      - "assessment"
+      - "payment"
+      - "analytics"
+    
+  tasks:
+    - name: Ensure PostgreSQL extensions are enabled
+      postgresql_ext:
+        name: "{{ item.0 }}"
+        db: "{{ item.1 }}"
+        login_host: "{{ ansible_host }}"
+        login_user: "{{ ansible_user }}"
+        login_password: "{{ postgres_password }}"
+        port: 5432
+      loop: "{{ ['uuid-ossp', 'pgcrypto', 'pg_stat_statements'] | product(databases) | list }}"
+
+    - name: Configure PostgreSQL logging
+      postgresql_set:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        login_host: "{{ ansible_host }}"
+        login_user: "{{ ansible_user }}"
+        login_password: "{{ postgres_password }}"
+      loop:
+        - { name: "log_statement", value: "all" }
+        - { name: "log_duration", value: "on" }
+        - { name: "log_connections", value: "on" }
+        - { name: "log_disconnections", value: "on" }
+
+- name: Configure Redis Security
+  hosts: redis
+  gather_facts: false
+  
+  tasks:
+    - name: Verify Redis SSL connectivity
+      uri:
+        url: "https://{{ ansible_host }}:{{ redis_port }}/ping"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ redis_access_key }}"
+        validate_certs: yes
+      register: redis_health_check
+
+    - name: Display Redis connectivity status
+      debug:
+        msg: "Redis connectivity: {{ redis_health_check.status }}"

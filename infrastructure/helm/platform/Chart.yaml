@@ -1,0 +1,21 @@
+apiVersion: v2
+name: modex-platform
+description: A Helm chart for Modex Learning Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: postgresql
+    version: "12.1.9"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+
+  - name: redis
+    version: "17.3.7"
+    repository: "https://charts.bitnami.com/bitnami" 
+    condition: redis.enabled
+
+maintainers:
+  - name: Platform Team
+    email: platform@modex.com

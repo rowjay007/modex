@@ -1,0 +1,84 @@
+{{- if .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-prometheus-rules
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: monitoring
+spec:
+  groups:
+  - name: modex-platform.rules
+    rules:
+    # Service availability alerts
+    - alert: ServiceDown
+      expr: up{job=~".*-service.*"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Service {{ $labels.job }} is down"
+        description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+    # High error rate alerts
+    - alert: HighErrorRate
+      expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High error rate on {{ $labels.job }}"
+        description: "Error rate is above 10% for {{ $labels.job }}"
+
+    # High response time alerts
+    - alert: HighResponseTime
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High response time on {{ $labels.job }}"
+        description: "95th percentile response time is above 1 second for {{ $labels.job }}"
+
+    # CPU usage alerts
+    - alert: HighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage on {{ $labels.pod }}"
+        description: "CPU usage is above 80% for {{ $labels.pod }}"
+
+    # Memory usage alerts
+    - alert: HighMemoryUsage
+      expr: container_memory_usage_bytes / container_spec_memory_limit_bytes * 100 > 85
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage on {{ $labels.pod }}"
+        description: "Memory usage is above 85% for {{ $labels.pod }}"
+
+    # Database connection alerts
+    - alert: DatabaseConnectionFailure
+      expr: increase(database_connection_errors_total[5m]) > 5
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Database connection failures detected"
+        description: "More than 5 database connection failures in the last 5 minutes"
+
+    # Redis connection alerts
+    - alert: RedisConnectionFailure
+      expr: increase(redis_connection_errors_total[5m]) > 5
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Redis connection failures detected"
+        description: "More than 5 Redis connection failures in the last 5 minutes"
+{{- end }}

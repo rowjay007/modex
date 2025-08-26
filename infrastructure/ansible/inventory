@@ -1,0 +1,21 @@
+[azure_aks]
+modex-aks ansible_host=localhost ansible_connection=local
+
+[azure_aks:vars]
+ansible_python_interpreter=/usr/bin/python3
+resource_group={{ resource_group_name }}
+aks_cluster_name={{ aks_cluster_name }}
+location={{ azure_location }}
+
+[postgres]
+modex-postgres ansible_host={{ postgres_hostname }}
+
+[postgres:vars]
+ansible_user=modexadmin
+postgres_version=14
+
+[redis]
+modex-redis ansible_host={{ redis_hostname }}
+
+[redis:vars]
+redis_port=6380
