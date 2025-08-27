@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Modex</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Modex!</h1>
+            <p>Your journey to excellence begins here</p>
+        </div>
+        <div class="content">
+            <h2>Hi {{name}}!</h2>
+            <p>{{content}}</p>
+            
+            <p>We're thrilled to have you join our learning community. Here's what you can do next:</p>
+            
+            <ul>
+                <li>🎯 Browse our extensive course catalog</li>
+                <li>📚 Complete your profile to get personalized recommendations</li>
+                <li>🎓 Start with our beginner-friendly courses</li>
+                <li>👥 Connect with fellow learners in our community</li>
+            </ul>
+            
+            <a href="{{actionUrl}}" class="button">Get Started</a>
+            
+            <p>If you have any questions, our support team is here to help. Just reply to this email!</p>
+            
+            <p>Happy learning!<br>The Modex Team</p>
+        </div>
+        <div class="footer">
+            <p>© 2024 Modex Learning Platform. All rights reserved.</p>
+            <p>You're receiving this because you signed up for Modex.</p>
+        </div>
+    </div>
+</body>
+</html>
