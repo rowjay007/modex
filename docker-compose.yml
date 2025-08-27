@@ -188,21 +188,39 @@ services:
       - modex-network
     restart: unless-stopped
 
-  # Load Balancer (Optional)
+  # Frontend - Next.js Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: modex-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - api-gateway
+    networks:
+      - modex-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: modex-nginx
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./infrastructure/configs/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./infrastructure/configs/nginx/sites-enabled:/etc/nginx/sites-enabled
     depends_on:
+      - frontend
       - api-gateway
     networks:
       - modex-network
-    restart: unless-stopped
 
 networks:
   modex-network:

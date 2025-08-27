@@ -28,12 +28,31 @@ ingress:
       hosts:
         - api.modex.platform
 
+# Frontend Configuration
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: modex/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
 # Service configurations
 services:
   apiGateway:
     enabled: true
+    name: api-gateway
     port: 3000
-    image: api-gateway
+    image:
+      repository: modex/api-gateway
+      tag: latest
     replicas: 3
     resources:
       requests:
