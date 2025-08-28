@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface AuthenticatedRequest extends express.Request {
   user?: any;

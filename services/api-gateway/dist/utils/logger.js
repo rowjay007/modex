@@ -4,20 +4,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logger = void 0;
-const winston_1 = __importDefault(require("winston"));
-const logFormat = winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.errors({ stack: true }), winston_1.default.format.json());
-exports.logger = winston_1.default.createLogger({
+const pino_1 = __importDefault(require("pino"));
+const logger = (0, pino_1.default)({
     level: process.env.LOG_LEVEL || 'info',
-    format: logFormat,
-    defaultMeta: { service: 'api-gateway' },
-    transports: [
-        new winston_1.default.transports.File({ filename: 'logs/error.log', level: 'error' }),
-        new winston_1.default.transports.File({ filename: 'logs/combined.log' }),
-    ],
+    transport: process.env.NODE_ENV === 'development' ? {
+        target: 'pino-pretty',
+        options: {
+            colorize: true,
+            ignore: 'pid,hostname',
+            translateTime: 'SYS:standard'
+        }
+    } : undefined
 });
-if (process.env.NODE_ENV !== 'production') {
-    exports.logger.add(new winston_1.default.transports.Console({
-        format: winston_1.default.format.combine(winston_1.default.format.colorize(), winston_1.default.format.simple())
-    }));
-}
+exports.logger = logger;
 //# sourceMappingURL=logger.js.map

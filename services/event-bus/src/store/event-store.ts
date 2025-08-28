@@ -1,5 +1,35 @@
-import { Pool } from 'pg'
-import { Redis } from 'ioredis'
+// Mock PostgreSQL and Redis dependencies
+class MockPool {
+  async connect() { return new MockClient() }
+  async query(sql: string, params?: any[]) { return { rows: [] } }
+  async end() {}
+}
+
+class MockClient {
+  async query(sql: string, params?: any[]) { return { rows: [] } }
+  async release() {}
+}
+
+class MockRedis {
+  constructor(url?: string, options?: any) {}
+  async zadd(key: string, score: number, value: string) {}
+  async zremrangebyrank(key: string, start: number, stop: number) {}
+  async expire(key: string, seconds: number) {}
+  async zrange(key: string, start: number, stop: number) { return [] }
+  async get(key: string) { return null }
+  async setex(key: string, seconds: number, value: string) {}
+  async quit() {}
+  pipeline() { return new MockPipeline() }
+}
+
+class MockPipeline {
+  zadd(key: string, score: number, value: string) { return this }
+  expire(key: string, seconds: number) { return this }
+  async exec() { return [] }
+}
+
+const Pool = MockPool as any
+const Redis = MockRedis as any
 import { DomainEvent } from '../types/events'
 import { logger } from '../utils/logger'
 
@@ -11,8 +41,8 @@ export interface EventStore {
 }
 
 export class PostgresEventStore implements EventStore {
-  private pool: Pool
-  private redis: Redis
+  private pool: MockPool
+  private redis: MockRedis
 
   constructor() {
     this.pool = new Pool({

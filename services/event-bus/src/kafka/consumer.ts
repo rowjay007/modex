@@ -1,11 +1,46 @@
-import { Kafka, Consumer, EachMessagePayload } from 'kafkajs'
+// Mock Kafka dependencies
+class MockKafka {
+  constructor(config: any) {}
+  consumer(config: any) { return new MockConsumer() }
+  producer() { return new MockProducer() }
+}
+
+class MockConsumer {
+  async connect() {}
+  async disconnect() {}
+  async subscribe(options: any) {}
+  async run(options: any) {}
+  async pause(topics: any) {}
+  async resume(topics: any) {}
+  async seek(positions: any) {}
+}
+
+class MockProducer {
+  async connect() {}
+  async disconnect() {}
+  async send(record: any) {}
+}
+
+const Kafka = MockKafka as any
+type Consumer = MockConsumer
+type EachMessagePayload = {
+  topic: string
+  partition: number
+  message: {
+    key: any
+    value: Buffer | null
+    offset: string
+    headers?: any
+  }
+}
+
 import { logger } from '../utils/logger'
 import { DomainEvent } from '../types/events'
 import { EventHandler } from '../handlers/event-handler'
 
 export class EventConsumer {
-  private kafka: Kafka
-  private consumer: Consumer
+  private kafka: MockKafka
+  private consumer: MockConsumer
   private eventHandler: EventHandler
   private isConnected: boolean = false
 

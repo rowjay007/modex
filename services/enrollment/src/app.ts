@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import express, { Application, NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import mainRouter from './routes/index';
-import logger from './utils/logger';
+import { logger } from './utils/logger';
 import AppError from './utils/appError';
 
 dotenv.config();

@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { createClient } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/config';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 // Redis client for rate limiting
 const redisClient = createClient({ url: config.REDIS_URL });

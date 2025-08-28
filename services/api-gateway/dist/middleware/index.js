@@ -11,7 +11,7 @@ const uuid_1 = require("uuid");
 const config_1 = require("../config/config");
 const logger_1 = require("../utils/logger");
 const redisClient = (0, redis_1.createClient)({ url: config_1.config.REDIS_URL });
-redisClient.connect().catch(logger_1.logger.error);
+redisClient.connect().catch((err) => logger_1.logger.error('Redis connection error:', err));
 const requestId = (req, res, next) => {
     req.headers['x-request-id'] = req.headers['x-request-id'] || (0, uuid_1.v4)();
     res.set('x-request-id', req.headers['x-request-id']);

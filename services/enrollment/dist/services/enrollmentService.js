@@ -1,10 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.enrollmentService = void 0;
-const logger_1 = __importDefault(require("../utils/logger"));
+const logger_1 = require("../utils/logger");
 const database_1 = require("../config/database");
 const schema_1 = require("../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -15,7 +12,7 @@ class EnrollmentService {
      * @returns The newly created enrollment record.
      */
     async createEnrollment(data) {
-        logger_1.default.info({ data }, 'Service: Creating enrollment');
+        logger_1.logger.info({ data }, 'Service: Creating enrollment');
         const [newEnrollment] = await database_1.db.insert(schema_1.enrollments).values(data).returning();
         return newEnrollment;
     }
@@ -25,7 +22,7 @@ class EnrollmentService {
      * @returns The enrollment record, or undefined if not found.
      */
     async getEnrollmentById(id) {
-        logger_1.default.info({ id }, 'Service: Getting enrollment by ID');
+        logger_1.logger.info({ id }, 'Service: Getting enrollment by ID');
         const [enrollment] = await database_1.db.select().from(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, id));
         return enrollment;
     }
@@ -35,7 +32,7 @@ class EnrollmentService {
      * @returns An array of enrollment records.
      */
     async getEnrollmentsByUser(userId) {
-        logger_1.default.info({ userId }, 'Service: Getting enrollments for user');
+        logger_1.logger.info({ userId }, 'Service: Getting enrollments for user');
         return database_1.db.select().from(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.userId, userId));
     }
     /**
@@ -45,7 +42,7 @@ class EnrollmentService {
      * @returns The updated enrollment record, or undefined if not found.
      */
     async updateEnrollmentStatus(id, status) {
-        logger_1.default.info({ id, status }, 'Service: Updating enrollment status');
+        logger_1.logger.info({ id, status }, 'Service: Updating enrollment status');
         const [updatedEnrollment] = await database_1.db
             .update(schema_1.enrollments)
             .set({ status, updatedAt: new Date() })
@@ -59,7 +56,7 @@ class EnrollmentService {
      * @returns The deleted enrollment record.
      */
     async deleteEnrollment(id) {
-        logger_1.default.info({ id }, 'Service: Deleting enrollment');
+        logger_1.logger.info({ id }, 'Service: Deleting enrollment');
         const [deletedEnrollment] = await database_1.db.delete(schema_1.enrollments).where((0, drizzle_orm_1.eq)(schema_1.enrollments.id, id)).returning();
         return deletedEnrollment;
     }

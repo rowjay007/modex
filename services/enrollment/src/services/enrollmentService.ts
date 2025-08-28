@@ -1,4 +1,4 @@
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 import { db } from '../config/database';
 import { enrollments, enrollmentStatusEnum } from '../models/schema';
 import { eq, InferInsertModel, InferSelectModel } from 'drizzle-orm';

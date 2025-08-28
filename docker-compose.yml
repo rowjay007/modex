@@ -188,6 +188,131 @@ services:
       - modex-network
     restart: unless-stopped
 
+  # Audit & Compliance Service
+  audit:
+    build:
+      context: ./services/audit
+      dockerfile: Dockerfile
+    container_name: modex-audit
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Search Service
+  search:
+    build:
+      context: ./services/search
+      dockerfile: Dockerfile
+    container_name: modex-search
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key-here
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Event Bus Service
+  event-bus:
+    build:
+      context: ./services/event-bus
+      dockerfile: Dockerfile
+    container_name: modex-event-bus
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/modex
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - modex-network
+    restart: unless-stopped
+
+  # Elasticsearch for Search Service
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: modex-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - modex-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Kafka for Event Bus
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: modex-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - modex-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: modex-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - modex-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Frontend - Next.js Application
   frontend:
     build:
@@ -232,3 +357,5 @@ volumes:
     name: modex-postgres-data
   redis_data:
     name: modex-redis-data
+  elasticsearch_data:
+    name: modex-elasticsearch-data

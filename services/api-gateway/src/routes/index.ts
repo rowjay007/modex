@@ -3,7 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { config } from '../config/config';
 import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { metricsHandler } from '../middleware/metrics';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 interface AuthenticatedRequest extends express.Request {
   user?: any;
